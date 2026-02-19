@@ -96,8 +96,8 @@ class ModelBenchmark(BaseBenchmark):
             )
             suite.run(
                 output=str(output_xml),
-                log=None,
-                report=None,
+                log="NONE",
+                report="NONE",
                 stdout=io.StringIO(),
             )
             self.output_xml_path = output_xml

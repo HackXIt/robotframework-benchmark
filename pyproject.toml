@@ -13,7 +13,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0",
     "pytest-benchmark>=5.1",
     "ruff>=0.5",
 ]
@@ -32,6 +31,5 @@ target-version = "py313"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = "-v"
+[tool.robot]
+testpaths = ["atests"]

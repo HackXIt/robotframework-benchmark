@@ -146,7 +146,6 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
-    { name = "pytest" },
     { name = "pytest-benchmark" },
     { name = "ruff" },
 ]
@@ -155,7 +154,6 @@ dev = [
 requires-dist = [
     { name = "memory-profiler", specifier = ">=0.61" },
     { name = "psutil", specifier = ">=5.9" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-benchmark", marker = "extra == 'dev'", specifier = ">=5.1" },
     { name = "robotframework", specifier = ">=7.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },

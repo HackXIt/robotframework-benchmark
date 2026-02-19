@@ -22,7 +22,7 @@ Subclass :class:`ExecutionBenchmark` and add methods decorated with
         @benchmark("execute custom suite")
         def bench_custom(self) -> None:
             suite = robot.api.TestSuite.from_file_system(self.suite_path)
-            suite.run(output=None)
+            suite.run(output="NONE")
 """
 
 from __future__ import annotations
@@ -125,7 +125,7 @@ class ExecutionBenchmark(BaseBenchmark):
             str(self.suite_dir / "simple.robot")
         )
         # Suppress output artefacts during benchmarking.
-        suite.run(output=None, log=None, report=None, stdout=io.StringIO())
+        suite.run(output="NONE", log="NONE", report="NONE", stdout=io.StringIO())
 
     @benchmark("run keyword suite (no output)")
     def bench_run_keywords(self) -> None:
@@ -133,4 +133,4 @@ class ExecutionBenchmark(BaseBenchmark):
         suite = robot.api.TestSuite.from_file_system(
             str(self.suite_dir / "keyword.robot")
         )
-        suite.run(output=None, log=None, report=None, stdout=io.StringIO())
+        suite.run(output="NONE", log="NONE", report="NONE", stdout=io.StringIO())

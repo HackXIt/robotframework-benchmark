@@ -31,7 +31,7 @@ third-party library developers.
 git clone https://github.com/HackXIt/robotframework-benchmark.git
 cd robotframework-benchmark
 
-# Install with dev extras (includes pytest + pytest-benchmark)
+# Install with dev extras (includes pytest-benchmark)
 uv sync --extra dev
 ```
 
@@ -92,13 +92,31 @@ robotframework-benchmark/
 │   ├── execution/                    # fixtures for execution benchmarks
 │   ├── model/                        # fixtures for model benchmarks
 │   └── memory/                       # fixtures for memory benchmarks
-└── tests/                            # pytest unit/smoke tests
+└── atests/                           # Robot Framework acceptance tests
+    ├── cli.robot                     # CLI acceptance tests
+    ├── benchmarks/                   # per-benchmark-class acceptance tests
+    │   ├── parsing.robot
+    │   ├── execution.robot
+    │   ├── model.robot
+    │   └── memory.robot
+    └── utils/                        # metrics + reporting acceptance tests
+        ├── metrics.robot
+        └── reporting.robot
 ```
 
-## Running Tests
+## Running Acceptance Tests
+
+The project uses Robot Framework itself as the acceptance test runner — fitting
+for a benchmark library that targets RF internals.
 
 ```bash
-uv run pytest
+uv run python -m robot --outputdir results/atests atests/
+```
+
+Run a single suite:
+
+```bash
+uv run python -m robot --outputdir results/atests atests/benchmarks/parsing.robot
 ```
 
 ## Benchmark Suites (Robot Framework Syntax)

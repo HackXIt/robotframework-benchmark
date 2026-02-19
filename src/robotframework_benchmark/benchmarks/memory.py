@@ -110,7 +110,7 @@ class MemoryBenchmark(BaseBenchmark):
         suite = robot.api.TestSuite.from_file_system(
             str(self.suite_dir / "memory_fixture.robot")
         )
-        suite.run(output=None, log=None, report=None, stdout=io.StringIO())
+        suite.run(output="NONE", log="NONE", report="NONE", stdout=io.StringIO())
         rss_after = proc.memory_info().rss
         growth = max(0, rss_after - rss_before)
         # Store RSS growth in the result's extra metadata.
