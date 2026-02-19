@@ -157,6 +157,9 @@ venv.bak/
 # Robot Framework output artefacts
 results/
 
+# Named pipe artefact from shell redirects in CI
+PIPE
+
 # mypy
 .mypy_cache/
 .dmypy.json
