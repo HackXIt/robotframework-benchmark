@@ -10,6 +10,11 @@ Benchmark targets
 - :func:`robot.api.TestSuite.from_file_system` – building + running a suite
 - Individual keyword invocation latency via the ``robot.running`` internals
 
+Fixture files
+-------------
+Built-in fixture ``.robot`` files live in:
+``fixtures/execution/`` (alongside this module).
+
 Implementing benchmarks
 -----------------------
 Subclass :class:`ExecutionBenchmark` and add methods decorated with
@@ -25,50 +30,19 @@ Subclass :class:`ExecutionBenchmark` and add methods decorated with
             suite.run(output="NONE")
 """
 
-from __future__ import annotations
-
 import io
 import pathlib
+import shutil
 import tempfile
+from typing import Optional
 
 import robot.api
 import robot.api.interfaces
 
 from robotframework_benchmark.benchmarks.base import BaseBenchmark, benchmark
 
-# ---------------------------------------------------------------------------
-# Minimal embedded suites used as execution fixtures.
-# ---------------------------------------------------------------------------
-
-_SIMPLE_SUITE = """\
-*** Settings ***
-Library    Collections
-
-*** Test Cases ***
-Log Message
-    Log    Hello from benchmark
-
-Create List
-    ${items}=    Create List    a    b    c
-    Should Contain    ${items}    b
-"""
-
-_KEYWORD_SUITE = """\
-*** Settings ***
-Library    String
-
-*** Keywords ***
-Repeat Uppercase
-    [Arguments]    ${text}    ${count}
-    FOR    ${_}    IN RANGE    ${count}
-        ${upper}=    Convert To Uppercase    ${text}
-    END
-    RETURN    ${upper}
-
-*** Test Cases ***
-Keyword Invocation
-    Repeat Uppercase    benchmark    10
-"""
+# Directory containing the built-in fixture files shipped with the package.
+_FIXTURES_DIR = pathlib.Path(__file__).parent / "fixtures" / "execution"
 
 
 class ExecutionBenchmark(BaseBenchmark):
@@ -86,22 +60,22 @@ class ExecutionBenchmark(BaseBenchmark):
         bench.run()
     """
 
-    def __init__(self, iterations: int = 1, suite_dir: pathlib.Path | None = None) -> None:
+    def __init__(self, iterations: int = 1, suite_dir: Optional[pathlib.Path] = None) -> None:
         super().__init__(iterations=iterations)
         self.suite_dir = suite_dir
-        self._tmpdir: tempfile.TemporaryDirectory | None = None  # type: ignore[type-arg]
+        self._tmpdir: Optional[tempfile.TemporaryDirectory] = None  # type: ignore[type-arg]
 
     # ------------------------------------------------------------------
     # BaseBenchmark interface
     # ------------------------------------------------------------------
 
     def setup(self) -> None:
-        """Write fixture suites to a temporary directory."""
+        """Copy built-in fixture files to a temporary directory."""
         if self.suite_dir is None:
             self._tmpdir = tempfile.TemporaryDirectory()
             self.suite_dir = pathlib.Path(self._tmpdir.name)
-            (self.suite_dir / "simple.robot").write_text(_SIMPLE_SUITE)
-            (self.suite_dir / "keyword.robot").write_text(_KEYWORD_SUITE)
+            for src in _FIXTURES_DIR.iterdir():
+                shutil.copy2(src, self.suite_dir / src.name)
 
     def teardown(self) -> None:
         """Remove temporary fixture files."""

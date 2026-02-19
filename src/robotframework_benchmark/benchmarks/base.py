@@ -6,18 +6,16 @@ All concrete benchmarks should subclass :class:`BaseBenchmark` and implement
 benchmark methods decorated with :func:`~robotframework_benchmark.benchmarks.base.benchmark`.
 """
 
-from __future__ import annotations
-
 import abc
 import functools
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from robotframework_benchmark.utils.metrics import BenchmarkResult, MetricsCollector
 
 
-def benchmark(name: str | None = None, track_memory: bool = False) -> Callable:
+def benchmark(name: Optional[str] = None, track_memory: bool = False) -> Callable:
     """Decorator that marks a method as a benchmark target.
 
     The decorated method is timed automatically and a :class:`BenchmarkResult`
@@ -75,7 +73,7 @@ class BaseBenchmark(abc.ABC):
     methods should be decorated with :func:`benchmark`.
 
     Attributes:
-        results: Mapping of benchmark name → :class:`BenchmarkResult` populated
+        results: Mapping of benchmark name to :class:`BenchmarkResult` populated
             after :meth:`run` is called.
         iterations: Number of times each benchmark method is executed during
             :meth:`run`.
@@ -101,7 +99,7 @@ class BaseBenchmark(abc.ABC):
 
     def __init__(self, iterations: int = 1) -> None:
         self.iterations = iterations
-        self.results: dict[str, BenchmarkResult] = {}
+        self.results: Dict[str, BenchmarkResult] = {}
 
     @abc.abstractmethod
     def setup(self) -> None:
@@ -111,7 +109,7 @@ class BaseBenchmark(abc.ABC):
     def teardown(self) -> None:
         """Release any resources acquired in :meth:`setup`."""
 
-    def run(self) -> dict[str, BenchmarkResult]:
+    def run(self) -> Dict[str, BenchmarkResult]:
         """Execute all benchmark methods and return accumulated results.
 
         Each method decorated with :func:`benchmark` is called
@@ -119,7 +117,7 @@ class BaseBenchmark(abc.ABC):
         a single :class:`BenchmarkResult` stored in :attr:`results`.
 
         Returns:
-            The :attr:`results` dict mapping benchmark name → result.
+            The :attr:`results` dict mapping benchmark name to result.
         """
         try:
             self.setup()
@@ -129,7 +127,7 @@ class BaseBenchmark(abc.ABC):
                 if callable(getattr(self, m)) and getattr(getattr(self, m), "_is_benchmark", False)
             ]
 
-            accumulated: dict[str, list[BenchmarkResult]] = {}
+            accumulated: Dict[str, List[BenchmarkResult]] = {}
             for _ in range(self.iterations):
                 for method in bench_methods:
                     result = method()

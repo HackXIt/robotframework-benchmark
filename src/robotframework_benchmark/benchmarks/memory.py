@@ -11,6 +11,11 @@ Benchmark targets
 - Object retention after building a :class:`robot.running.TestSuite`
 - RSS growth during a full suite run
 
+Fixture files
+-------------
+Built-in fixture ``.robot`` files live in:
+``fixtures/memory/`` (alongside this module).
+
 Implementing benchmarks
 -----------------------
 Subclass :class:`MemoryBenchmark` and add methods decorated with
@@ -30,31 +35,20 @@ Subclass :class:`MemoryBenchmark` and add methods decorated with
     :attr:`~robotframework_benchmark.utils.metrics.BenchmarkResult.peak_memory_bytes`.
 """
 
-from __future__ import annotations
-
 import io
 import pathlib
+import shutil
 import tempfile
 import tracemalloc
+from typing import Optional
 
 import psutil
 import robot.api
 
 from robotframework_benchmark.benchmarks.base import BaseBenchmark, benchmark
 
-_FIXTURE_SUITE = """\
-*** Settings ***
-Library    Collections
-
-*** Test Cases ***
-Memory Fixture 1
-    ${lst}=    Create List    a    b    c    d    e
-    Log    ${lst}
-
-Memory Fixture 2
-    ${dct}=    Create Dictionary    key=value    foo=bar
-    Log    ${dct}
-"""
+# Directory containing the built-in fixture files shipped with the package.
+_FIXTURES_DIR = pathlib.Path(__file__).parent / "fixtures" / "memory"
 
 
 class MemoryBenchmark(BaseBenchmark):
@@ -71,21 +65,22 @@ class MemoryBenchmark(BaseBenchmark):
         bench.run()
     """
 
-    def __init__(self, iterations: int = 1, suite_dir: pathlib.Path | None = None) -> None:
+    def __init__(self, iterations: int = 1, suite_dir: Optional[pathlib.Path] = None) -> None:
         super().__init__(iterations=iterations)
         self.suite_dir = suite_dir
-        self._tmpdir: tempfile.TemporaryDirectory | None = None  # type: ignore[type-arg]
+        self._tmpdir: Optional[tempfile.TemporaryDirectory] = None  # type: ignore[type-arg]
 
     # ------------------------------------------------------------------
     # BaseBenchmark interface
     # ------------------------------------------------------------------
 
     def setup(self) -> None:
-        """Write fixture suites to a temporary directory."""
+        """Copy built-in fixture files to a temporary directory."""
         if self.suite_dir is None:
             self._tmpdir = tempfile.TemporaryDirectory()
             self.suite_dir = pathlib.Path(self._tmpdir.name)
-            (self.suite_dir / "memory_fixture.robot").write_text(_FIXTURE_SUITE)
+            for src in _FIXTURES_DIR.iterdir():
+                shutil.copy2(src, self.suite_dir / src.name)
 
     def teardown(self) -> None:
         """Remove temporary fixture files."""

@@ -11,6 +11,11 @@ Benchmark targets
   :func:`robot.api.TestSuite.from_file_system`
 - :class:`robot.result.ExecutionResult` loading from an existing ``output.xml``
 
+Fixture files
+-------------
+Built-in fixture ``.robot`` files live in:
+``fixtures/model/`` (alongside this module).
+
 Implementing benchmarks
 -----------------------
 Subclass :class:`ModelBenchmark` and add methods decorated with
@@ -25,11 +30,11 @@ Subclass :class:`ModelBenchmark` and add methods decorated with
             robot.result.ExecutionResult(str(self.output_xml_path))
 """
 
-from __future__ import annotations
-
 import io
 import pathlib
+import shutil
 import tempfile
+from typing import Optional
 
 import robot.api
 import robot.model
@@ -37,16 +42,8 @@ import robot.result
 
 from robotframework_benchmark.benchmarks.base import BaseBenchmark, benchmark
 
-# ---------------------------------------------------------------------------
-# Minimal suite fixture used to generate an output.xml for result-loading
-# benchmarks.
-# ---------------------------------------------------------------------------
-
-_FIXTURE_SUITE = """\
-*** Test Cases ***
-Model Fixture
-    Log    model benchmark fixture
-"""
+# Directory containing the built-in fixture files shipped with the package.
+_FIXTURES_DIR = pathlib.Path(__file__).parent / "fixtures" / "model"
 
 
 class ModelBenchmark(BaseBenchmark):
@@ -70,13 +67,13 @@ class ModelBenchmark(BaseBenchmark):
     def __init__(
         self,
         iterations: int = 1,
-        suite_dir: pathlib.Path | None = None,
-        output_xml_path: pathlib.Path | None = None,
+        suite_dir: Optional[pathlib.Path] = None,
+        output_xml_path: Optional[pathlib.Path] = None,
     ) -> None:
         super().__init__(iterations=iterations)
         self.suite_dir = suite_dir
         self.output_xml_path = output_xml_path
-        self._tmpdir: tempfile.TemporaryDirectory | None = None  # type: ignore[type-arg]
+        self._tmpdir: Optional[tempfile.TemporaryDirectory] = None  # type: ignore[type-arg]
 
     # ------------------------------------------------------------------
     # BaseBenchmark interface
@@ -87,7 +84,8 @@ class ModelBenchmark(BaseBenchmark):
         if self.suite_dir is None:
             self._tmpdir = tempfile.TemporaryDirectory()
             self.suite_dir = pathlib.Path(self._tmpdir.name)
-            (self.suite_dir / "fixture.robot").write_text(_FIXTURE_SUITE)
+            for src in _FIXTURES_DIR.iterdir():
+                shutil.copy2(src, self.suite_dir / src.name)
 
         if self.output_xml_path is None:
             output_xml = self.suite_dir / "output.xml"

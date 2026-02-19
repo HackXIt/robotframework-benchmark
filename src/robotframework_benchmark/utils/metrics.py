@@ -5,13 +5,11 @@ This module provides :class:`MetricsCollector` for timing code sections and
 :class:`BenchmarkResult` for storing, aggregating, and displaying results.
 """
 
-from __future__ import annotations
-
 import statistics
 import time
 import tracemalloc
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -28,11 +26,11 @@ class BenchmarkResult:
 
     name: str
     elapsed_seconds: float
-    peak_memory_bytes: int | None = None
-    extra: dict[str, Any] = field(default_factory=dict)
+    peak_memory_bytes: Optional[int] = None
+    extra: Dict[str, Any] = field(default_factory=dict)
 
     # Populated by :meth:`aggregate`
-    _all_elapsed: list[float] = field(default_factory=list, repr=False)
+    _all_elapsed: List[float] = field(default_factory=list, repr=False)
 
     @property
     def mean_seconds(self) -> float:
@@ -42,7 +40,7 @@ class BenchmarkResult:
         return self.elapsed_seconds
 
     @property
-    def stdev_seconds(self) -> float | None:
+    def stdev_seconds(self) -> Optional[float]:
         """Standard deviation of wall-clock durations, or ``None`` for a single run."""
         if len(self._all_elapsed) > 1:
             return statistics.stdev(self._all_elapsed)
@@ -63,7 +61,7 @@ class BenchmarkResult:
         return self.elapsed_seconds
 
     @classmethod
-    def aggregate(cls, results: list["BenchmarkResult"]) -> "BenchmarkResult":
+    def aggregate(cls, results: "List[BenchmarkResult]") -> "BenchmarkResult":
         """Combine multiple single-run results into one aggregated result.
 
         Args:
@@ -79,7 +77,10 @@ class BenchmarkResult:
         if not results:
             raise ValueError("Cannot aggregate an empty list of results.")
         all_elapsed = [r.elapsed_seconds for r in results]
-        peak_mem = max((r.peak_memory_bytes for r in results if r.peak_memory_bytes is not None), default=None)
+        peak_mem = max(
+            (r.peak_memory_bytes for r in results if r.peak_memory_bytes is not None),
+            default=None,
+        )
         return cls(
             name=results[0].name,
             elapsed_seconds=statistics.mean(all_elapsed),
@@ -91,17 +92,17 @@ class BenchmarkResult:
     def __str__(self) -> str:
         runs = len(self._all_elapsed) or 1
         parts = [
-            f"[{self.name}]",
-            f"mean={self.mean_seconds * 1000:.3f}ms",
+            "[{}]".format(self.name),
+            "mean={:.3f}ms".format(self.mean_seconds * 1000),
         ]
         if runs > 1:
-            parts.append(f"runs={runs}")
+            parts.append("runs={}".format(runs))
             if self.stdev_seconds is not None:
-                parts.append(f"stdev={self.stdev_seconds * 1000:.3f}ms")
-            parts.append(f"min={self.min_seconds * 1000:.3f}ms")
-            parts.append(f"max={self.max_seconds * 1000:.3f}ms")
+                parts.append("stdev={:.3f}ms".format(self.stdev_seconds * 1000))
+            parts.append("min={:.3f}ms".format(self.min_seconds * 1000))
+            parts.append("max={:.3f}ms".format(self.max_seconds * 1000))
         if self.peak_memory_bytes is not None:
-            parts.append(f"peak_mem={self.peak_memory_bytes / 1024:.1f}KB")
+            parts.append("peak_mem={:.1f}KB".format(self.peak_memory_bytes / 1024))
         return " ".join(parts)
 
 
@@ -119,7 +120,7 @@ class MetricsCollector:
 
     def __init__(self, track_memory: bool = False) -> None:
         self._track_memory = track_memory
-        self._start_time: float | None = None
+        self._start_time: Optional[float] = None
 
     def start(self) -> None:
         """Begin timing (and optionally memory tracking)."""
@@ -141,7 +142,7 @@ class MetricsCollector:
         elapsed = time.perf_counter() - self._start_time
         self._start_time = None
 
-        peak_memory: int | None = None
+        peak_memory: Optional[int] = None
         if self._track_memory:
             _, peak = tracemalloc.get_traced_memory()
             tracemalloc.stop()

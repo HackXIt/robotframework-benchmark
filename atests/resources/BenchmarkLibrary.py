@@ -16,11 +16,9 @@ Usage in a ``.robot`` file::
         Should Not Be Empty    ${results}
 """
 
-from __future__ import annotations
-
 import io
 import json
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from robot.api.deco import keyword, library
 
@@ -45,7 +43,7 @@ class BenchmarkLibrary:
     # ------------------------------------------------------------------
 
     @keyword("Run Parsing Benchmark")
-    def run_parsing_benchmark(self, iterations: int = 1) -> dict[str, BenchmarkResult]:
+    def run_parsing_benchmark(self, iterations: int = 1) -> Dict[str, BenchmarkResult]:
         """Run all :class:`~robotframework_benchmark.benchmarks.parsing.ParsingBenchmark`
         methods and return the results dict.
 
@@ -53,7 +51,7 @@ class BenchmarkLibrary:
             iterations: Number of times each benchmark method is executed.
 
         Returns:
-            Dict mapping benchmark name → :class:`~robotframework_benchmark.utils.metrics.BenchmarkResult`.
+            Dict mapping benchmark name to :class:`~robotframework_benchmark.utils.metrics.BenchmarkResult`.
         """
         bench = ParsingBenchmark(iterations=int(iterations))
         return bench.run()
@@ -63,7 +61,7 @@ class BenchmarkLibrary:
     # ------------------------------------------------------------------
 
     @keyword("Run Execution Benchmark")
-    def run_execution_benchmark(self, iterations: int = 1) -> dict[str, BenchmarkResult]:
+    def run_execution_benchmark(self, iterations: int = 1) -> Dict[str, BenchmarkResult]:
         """Run all :class:`~robotframework_benchmark.benchmarks.execution.ExecutionBenchmark`
         methods and return the results dict.
         """
@@ -75,7 +73,7 @@ class BenchmarkLibrary:
     # ------------------------------------------------------------------
 
     @keyword("Run Model Benchmark")
-    def run_model_benchmark(self, iterations: int = 1) -> dict[str, BenchmarkResult]:
+    def run_model_benchmark(self, iterations: int = 1) -> Dict[str, BenchmarkResult]:
         """Run all :class:`~robotframework_benchmark.benchmarks.model.ModelBenchmark`
         methods and return the results dict.
         """
@@ -87,7 +85,7 @@ class BenchmarkLibrary:
     # ------------------------------------------------------------------
 
     @keyword("Run Memory Benchmark")
-    def run_memory_benchmark(self, iterations: int = 1) -> dict[str, BenchmarkResult]:
+    def run_memory_benchmark(self, iterations: int = 1) -> Dict[str, BenchmarkResult]:
         """Run all :class:`~robotframework_benchmark.benchmarks.memory.MemoryBenchmark`
         methods and return the results dict.
         """
@@ -100,7 +98,7 @@ class BenchmarkLibrary:
 
     @keyword("Get Result Elapsed Seconds")
     def get_result_elapsed_seconds(
-        self, results: dict[str, BenchmarkResult], name: str
+        self, results: Dict[str, BenchmarkResult], name: str
     ) -> float:
         """Return the mean elapsed seconds for benchmark *name* from *results*.
 
@@ -108,56 +106,58 @@ class BenchmarkLibrary:
         """
         if name not in results:
             raise AssertionError(
-                f"Benchmark '{name}' not found in results. "
-                f"Available: {list(results.keys())}"
+                "Benchmark '{}' not found in results. Available: {}".format(
+                    name, list(results.keys())
+                )
             )
         return results[name].mean_seconds
 
     @keyword("Get Result Peak Memory Bytes")
     def get_result_peak_memory_bytes(
-        self, results: dict[str, BenchmarkResult], name: str
-    ) -> int | None:
+        self, results: Dict[str, BenchmarkResult], name: str
+    ) -> Optional[int]:
         """Return peak memory bytes for benchmark *name*, or ``None`` if not tracked."""
         if name not in results:
-            raise AssertionError(f"Benchmark '{name}' not found in results.")
+            raise AssertionError("Benchmark '{}' not found in results.".format(name))
         return results[name].peak_memory_bytes
 
     @keyword("Result Should Have Memory Info")
     def result_should_have_memory_info(
-        self, results: dict[str, BenchmarkResult], name: str
+        self, results: Dict[str, BenchmarkResult], name: str
     ) -> None:
         """Fail unless *name* has a non-None :attr:`peak_memory_bytes`."""
         peak = self.get_result_peak_memory_bytes(results, name)
         if peak is None:
             raise AssertionError(
-                f"Benchmark '{name}' has no memory info (peak_memory_bytes is None)."
+                "Benchmark '{}' has no memory info (peak_memory_bytes is None).".format(name)
             )
         if peak <= 0:
             raise AssertionError(
-                f"Benchmark '{name}' has zero or negative peak_memory_bytes: {peak}."
+                "Benchmark '{}' has zero or negative peak_memory_bytes: {}.".format(name, peak)
             )
 
     @keyword("Result Elapsed Should Be Positive")
     def result_elapsed_should_be_positive(
-        self, results: dict[str, BenchmarkResult], name: str
+        self, results: Dict[str, BenchmarkResult], name: str
     ) -> None:
         """Fail unless *name* has a strictly positive elapsed time."""
         elapsed = self.get_result_elapsed_seconds(results, name)
         if elapsed <= 0:
             raise AssertionError(
-                f"Benchmark '{name}' elapsed time is not positive: {elapsed}s."
+                "Benchmark '{}' elapsed time is not positive: {}s.".format(name, elapsed)
             )
 
     @keyword("Results Should Contain Benchmarks")
     def results_should_contain_benchmarks(
-        self, results: dict[str, BenchmarkResult], *names: str
+        self, results: Dict[str, BenchmarkResult], *names: str
     ) -> None:
         """Fail unless *results* contains all given benchmark *names*."""
         missing = [n for n in names if n not in results]
         if missing:
             raise AssertionError(
-                f"Missing benchmarks in results: {missing}. "
-                f"Available: {list(results.keys())}"
+                "Missing benchmarks in results: {}. Available: {}".format(
+                    missing, list(results.keys())
+                )
             )
 
     # ------------------------------------------------------------------
@@ -215,7 +215,7 @@ class BenchmarkLibrary:
 
     @keyword("Console Report As String")
     def console_report_as_string(
-        self, results: dict[str, BenchmarkResult]
+        self, results: Dict[str, BenchmarkResult]
     ) -> str:
         """Render *results* with :class:`~robotframework_benchmark.utils.reporting.ConsoleReporter`
         and return the output as a string.
@@ -226,7 +226,7 @@ class BenchmarkLibrary:
 
     @keyword("Json Report As String")
     def json_report_as_string(
-        self, results: dict[str, BenchmarkResult]
+        self, results: Dict[str, BenchmarkResult]
     ) -> str:
         """Render *results* with :class:`~robotframework_benchmark.utils.reporting.JsonReporter`
         and return the JSON string.
@@ -236,7 +236,7 @@ class BenchmarkLibrary:
         return buf.getvalue()
 
     @keyword("Json Report Should Be Valid")
-    def json_report_should_be_valid(self, json_string: str) -> list[dict[str, Any]]:
+    def json_report_should_be_valid(self, json_string: str) -> List[Dict[str, Any]]:
         """Parse *json_string* as JSON; fail if it is not a non-empty list of objects.
 
         Returns the parsed list on success.
@@ -244,15 +244,15 @@ class BenchmarkLibrary:
         try:
             data = json.loads(json_string)
         except json.JSONDecodeError as exc:
-            raise AssertionError(f"JSON output is not valid JSON: {exc}") from exc
+            raise AssertionError("JSON output is not valid JSON: {}".format(exc)) from exc
         if not isinstance(data, list):
-            raise AssertionError(f"Expected a JSON array, got {type(data).__name__}.")
+            raise AssertionError("Expected a JSON array, got {}.".format(type(data).__name__))
         if not data:
             raise AssertionError("JSON array is empty.")
         for entry in data:
             for required in ("name", "mean_ms", "min_ms", "max_ms"):
                 if required not in entry:
                     raise AssertionError(
-                        f"JSON entry missing required key '{required}': {entry}"
+                        "JSON entry missing required key '{}': {}".format(required, entry)
                     )
         return data

@@ -6,12 +6,10 @@ Provides :class:`ConsoleReporter` for human-readable terminal output and
 :class:`BaseReporter` interface.
 """
 
-from __future__ import annotations
-
 import abc
 import json
 import sys
-from typing import IO, Any
+from typing import IO, Any, Dict, Optional
 
 from robotframework_benchmark.utils.metrics import BenchmarkResult
 
@@ -20,7 +18,7 @@ class BaseReporter(abc.ABC):
     """Abstract reporter interface."""
 
     @abc.abstractmethod
-    def report(self, results: dict[str, BenchmarkResult]) -> None:
+    def report(self, results: Dict[str, BenchmarkResult]) -> None:
         """Emit *results* through this reporter's output channel."""
 
 
@@ -41,10 +39,10 @@ class ConsoleReporter(BaseReporter):
     _COL_WIDTHS = (28, 10, 10, 10, 12)
     _HEADERS = ("Benchmark", "Mean(ms)", "Min(ms)", "Max(ms)", "Peak Mem")
 
-    def __init__(self, stream: IO[str] | None = None) -> None:
+    def __init__(self, stream: Optional[IO[str]] = None) -> None:
         self._stream = stream or sys.stdout
 
-    def report(self, results: dict[str, BenchmarkResult]) -> None:
+    def report(self, results: Dict[str, BenchmarkResult]) -> None:
         if not results:
             self._stream.write("No benchmark results to report.\n")
             return
@@ -54,8 +52,8 @@ class ConsoleReporter(BaseReporter):
         sep_mid = "├" + "┼".join("─" * (cw + 2) for cw in w) + "┤"
         sep_bot = "└" + "┴".join("─" * (cw + 2) for cw in w) + "┘"
 
-        def row(cells: tuple[str, ...]) -> str:
-            padded = [f" {str(c):<{w[i]}} " for i, c in enumerate(cells)]
+        def row(cells: tuple) -> str:
+            padded = [" {:<{}} ".format(str(c), w[i]) for i, c in enumerate(cells)]
             return "│" + "│".join(padded) + "│"
 
         title = " Benchmark Results "
@@ -66,13 +64,13 @@ class ConsoleReporter(BaseReporter):
         self._stream.write(sep_mid + "\n")
 
         for result in results.values():
-            mem_str = f"{result.peak_memory_bytes / 1024:.1f} KB" if result.peak_memory_bytes else "N/A"
+            mem_str = "{:.1f} KB".format(result.peak_memory_bytes / 1024) if result.peak_memory_bytes else "N/A"
             self._stream.write(
                 row((
                     result.name[:w[0]],
-                    f"{result.mean_seconds * 1000:.3f}",
-                    f"{result.min_seconds * 1000:.3f}",
-                    f"{result.max_seconds * 1000:.3f}",
+                    "{:.3f}".format(result.mean_seconds * 1000),
+                    "{:.3f}".format(result.min_seconds * 1000),
+                    "{:.3f}".format(result.max_seconds * 1000),
                     mem_str,
                 ))
                 + "\n"
@@ -89,14 +87,14 @@ class JsonReporter(BaseReporter):
         indent: JSON indentation level (default: ``2``).
     """
 
-    def __init__(self, stream: IO[str] | None = None, indent: int = 2) -> None:
+    def __init__(self, stream: Optional[IO[str]] = None, indent: int = 2) -> None:
         self._stream = stream or sys.stdout
         self._indent = indent
 
-    def report(self, results: dict[str, BenchmarkResult]) -> None:
-        payload: list[dict[str, Any]] = []
+    def report(self, results: Dict[str, BenchmarkResult]) -> None:
+        payload = []
         for result in results.values():
-            entry: dict[str, Any] = {
+            entry: Dict[str, Any] = {
                 "name": result.name,
                 "mean_ms": round(result.mean_seconds * 1000, 6),
                 "min_ms": round(result.min_seconds * 1000, 6),

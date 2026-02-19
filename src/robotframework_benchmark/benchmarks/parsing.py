@@ -11,6 +11,11 @@ Benchmark targets
   structure parser used when building a full :class:`~robot.running.TestSuite`
 - :func:`robot.api.get_resource_model` – resource file parsing
 
+Fixture files
+-------------
+Built-in fixture ``.robot`` and ``.resource`` files live in:
+``fixtures/parsing/`` (alongside this module).
+
 Implementing benchmarks
 -----------------------
 Subclass or extend :class:`ParsingBenchmark` and add methods decorated with
@@ -22,56 +27,20 @@ Subclass or extend :class:`ParsingBenchmark` and add methods decorated with
     class MyParsingBenchmark(ParsingBenchmark):
         @benchmark("parse custom file")
         def bench_custom(self) -> None:
-            robot.api.get_model(self.suite_path / "custom.robot")
+            robot.api.get_model(str(self.suite_dir / "custom.robot"))
 """
 
-from __future__ import annotations
-
 import pathlib
+import shutil
 import tempfile
+from typing import Optional
 
 import robot.api
 
 from robotframework_benchmark.benchmarks.base import BaseBenchmark, benchmark
 
-# ---------------------------------------------------------------------------
-# Minimal embedded Robot Framework source used as fixture data.
-# Replace these with real suite files in ``suites/parsing/`` for meaningful
-# results.
-# ---------------------------------------------------------------------------
-
-_SMALL_SUITE = """\
-*** Settings ***
-Documentation    A small suite for parsing benchmarks.
-
-*** Test Cases ***
-First Test
-    Log    Hello, world!
-
-Second Test
-    Log    Goodbye, world!
-"""
-
-_MEDIUM_SUITE = _SMALL_SUITE + "\n".join(
-    f"Test {i}\n    Log    iteration {i}\n" for i in range(50)
-)
-
-_LARGE_SUITE = _SMALL_SUITE + "\n".join(
-    f"Test {i}\n    Log    iteration {i}\n" for i in range(500)
-)
-
-_RESOURCE_FILE = """\
-*** Settings ***
-Documentation    A resource file for parsing benchmarks.
-
-*** Variables ***
-${GREETING}    Hello
-
-*** Keywords ***
-Greet
-    [Arguments]    ${name}
-    Log    ${GREETING}, ${name}!
-"""
+# Directory containing the built-in fixture files shipped with the package.
+_FIXTURES_DIR = pathlib.Path(__file__).parent / "fixtures" / "parsing"
 
 
 class ParsingBenchmark(BaseBenchmark):
@@ -80,8 +49,8 @@ class ParsingBenchmark(BaseBenchmark):
     Attributes:
         suite_dir: :class:`~pathlib.Path` to the directory holding benchmark
             ``.robot`` and ``.resource`` fixtures.  Defaults to a temporary
-            directory populated with the built-in small/medium/large fixtures
-            when :meth:`setup` is called.
+            directory populated with the built-in fixtures when
+            :meth:`setup` is called.
 
     To use your own suites, set ``suite_dir`` before calling :meth:`run`::
 
@@ -90,27 +59,25 @@ class ParsingBenchmark(BaseBenchmark):
         bench.run()
     """
 
-    def __init__(self, iterations: int = 1, suite_dir: pathlib.Path | None = None) -> None:
+    def __init__(self, iterations: int = 1, suite_dir: Optional[pathlib.Path] = None) -> None:
         super().__init__(iterations=iterations)
         self.suite_dir = suite_dir
-        self._tmpdir: tempfile.TemporaryDirectory | None = None  # type: ignore[type-arg]
+        self._tmpdir: Optional[tempfile.TemporaryDirectory] = None  # type: ignore[type-arg]
 
     # ------------------------------------------------------------------
     # BaseBenchmark interface
     # ------------------------------------------------------------------
 
     def setup(self) -> None:
-        """Create temporary fixture files if no ``suite_dir`` was provided."""
+        """Copy built-in fixture files to a temporary directory if no ``suite_dir`` was provided."""
         if self.suite_dir is None:
             self._tmpdir = tempfile.TemporaryDirectory()
             self.suite_dir = pathlib.Path(self._tmpdir.name)
-            (self.suite_dir / "small.robot").write_text(_SMALL_SUITE)
-            (self.suite_dir / "medium.robot").write_text(_MEDIUM_SUITE)
-            (self.suite_dir / "large.robot").write_text(_LARGE_SUITE)
-            (self.suite_dir / "resource.resource").write_text(_RESOURCE_FILE)
+            for src in _FIXTURES_DIR.iterdir():
+                shutil.copy2(src, self.suite_dir / src.name)
 
     def teardown(self) -> None:
-        """Remove temporary fixture files (if created during :meth:`setup`)."""
+        """Remove temporary fixture directory (if created during :meth:`setup`)."""
         if self._tmpdir is not None:
             self._tmpdir.cleanup()
             self._tmpdir = None

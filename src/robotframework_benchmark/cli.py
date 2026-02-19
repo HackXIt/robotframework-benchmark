@@ -13,14 +13,9 @@ Usage::
     rfbenchmark list
 """
 
-from __future__ import annotations
-
 import argparse
 import sys
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    pass
+from typing import List, Optional
 
 _SUITES = {
     "parsing": "robotframework_benchmark.benchmarks.parsing.ParsingBenchmark",
@@ -58,7 +53,7 @@ def _build_parser() -> argparse.ArgumentParser:
         dest="suites",
         help=(
             "Benchmark suite to run.  May be repeated.  "
-            f"Choices: {', '.join(_SUITES)}.  "
+            "Choices: {}.  ".format(", ".join(_SUITES)) +
             "Defaults to all suites."
         ),
     )
@@ -88,7 +83,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def _cmd_list() -> None:
     print("Available benchmark suites:")
     for name, dotted_path in _SUITES.items():
-        print(f"  {name:<12}  ({dotted_path})")
+        print("  {:<12}  ({})".format(name, dotted_path))
 
 
 def _cmd_run(args: argparse.Namespace) -> None:
@@ -113,7 +108,7 @@ def _cmd_run(args: argparse.Namespace) -> None:
     reporter.report(all_results)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[List[str]] = None) -> int:
     """Entry point for the ``rfbenchmark`` CLI command.
 
     Returns:
